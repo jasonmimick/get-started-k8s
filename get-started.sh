@@ -29,21 +29,27 @@ echo "Details: CONFIGMAP_NAME=${CONFIGMAP_NAME}, SECERT_NAME=${SECRET_NAME}"
 
 kubectl create ns ${NAMESPACE}
 
-kubectl -n ${NAMESPACE} \
-  create secret generic "${SECRET_NAME}" \
-  --from-literal="user=${ATLAS_PUBLIC_KEY}" \
-  --from-literal="publicApiKey=${ATLAS_PRIVATE_KEY}"
+
+kubectl create secret generic "${SECRET_NAME}" -n ${NAMESPACE} \
+    --from-literal="user=${PUBLIC_KEY}" \
+    --from-literal="publicApiKey=${PRIVATE_KEY}"
+
+kubectl get secret -n ${NAMESPACE} "${SECRET_NAME}" --output=yaml
 
 kubectl -n ${NAMESPACE} \
-  create configmap "${GETSTARTED_NAME}" \
+  create configmap "${CONFIGMAP_NAME}" \
   --from-literal="baseUrl=https://cloud.mongodb.com" \
   --from-literal="projectName=${GETSTARTED_NAME}" \
-  --from-literal="orgId=${ATLAS_ORG_ID}"
+  --from-literal="orgId=${ORG_ID}"
+
+kubectl get configmap -n ${NAMESPACE} "${SECRET_NAME}" --output=yaml
 
 #helm install -n mongodb mongodb-operator mongodb/mongodb-enterprise-operator
 
-helm install -n ${NAMESPACE} \
+helm upgrade -n ${NAMESPACE} --install \
+    "${GETSTARTED_NAME}" mongodb/mongodb-enterprise-database \
     --set opsManager.configMap=${CONFIGMAP_NAME} \
     --set opsManager.secretRef=${SECRET_NAME} \
+    --set additionalMongodConfig="storageEngine: inMemory" \
     --set meta.helm.sh/release-name=${GETSTARTED_NAME} \
-    "${GETSTARTED_NAME}" mongodb/mongodb-enterprise-database
+
